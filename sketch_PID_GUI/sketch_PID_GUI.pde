@@ -26,7 +26,9 @@ private final ScheduledExecutorService scheduler      = Executors.newScheduledTh
 
 ControlP5 cp5;
 
-
+Knob PKnob, IKnob, DKnob;
+Slider smoothingSlider, looptimeSlider;
+Textlabel forceText;
 
 /* device block definitions ********************************************************************************************/
 Board             haplyBoard;
@@ -142,7 +144,7 @@ void setup(){
 				.setColorValue(color(255,0,0))
 				.setFont(createFont("Georgia",20))
 				;
-		cp5.addKnob("P")
+		PKnob = cp5.addKnob("P")
 				.setRange(0,2)
 				.setValue(0)
 				.setPosition(50,25)
@@ -155,7 +157,7 @@ void setup(){
 				.setColorValue(color(255,0,0))
 				.setFont(createFont("Georgia",20))
 				;
-		cp5.addKnob("I")
+		IKnob = cp5.addKnob("I")
 				.setRange(0,2)
 				.setValue(0)
 				.setPosition(50,150)
@@ -168,7 +170,7 @@ void setup(){
 				.setColorValue(color(255,0,0))
 				.setFont(createFont("Georgia",20))
 				;
-		cp5.addKnob("D")
+		DKnob = cp5.addKnob("D")
 				.setRange(0,4)
 				.setValue(0)
 				.setPosition(50,275)
@@ -181,7 +183,7 @@ void setup(){
 				.setColorValue(color(255,0,0))
 				.setFont(createFont("Georgia",20))
 				;  
-		cp5.addSlider("smoothing")
+		smoothingSlider = cp5.addSlider("smoothing")
 				.setPosition(10,400)
 				.setSize(200,20)
 				.setRange(0,1)
@@ -193,7 +195,7 @@ void setup(){
 				.setColorValue(color(255,0,0))
 				.setFont(createFont("Georgia",20))
 				;  
-		cp5.addSlider("looptime")
+		looptimeSlider = cp5.addSlider("looptime")
 				.setPosition(10,450)
 				.setWidth(200)
 				.setRange(250,4000) // values can range from big to small as well
@@ -204,18 +206,29 @@ void setup(){
 		cp5.addButton("RandomPosition")
 				.setValue(0)
 				.setPosition(10,500)
-				.setSize(200,50)
+				.setSize(200,40)
 				;
 		cp5.addButton("ResetIntegrator")
 				.setValue(0)
-				.setPosition(10,560)
-				.setSize(200,50)
+				.setPosition(10,550)
+				.setSize(200,40)
 				;
 		cp5.addButton("ResetDevice")
 				.setValue(0)
-				.setPosition(10,620)
-				.setSize(200,50)
+				.setPosition(10,600)
+				.setSize(200,40)
 				;
+		cp5.addButton("Exit")
+				.setValue(0)
+				.setPosition(10,650)
+				.setSize(200,40)
+				;
+
+		forceText = cp5.addTextlabel("Force Text")
+				.setText("--")
+				.setPosition(600, 600)
+				.setColorValue(color(255,0,0))
+				.setFont(createFont("Georgia",20));
 
 		/* device setup */
   
@@ -275,6 +288,10 @@ public void ResetDevice(int theValue) {
     widgetOne.device_set_parameters();
 
 }
+public void Exit(int value)
+{
+		exit();
+}
 
 
 /* Keyboard inputs *****************************************************************************************************/
@@ -284,32 +301,42 @@ public void ResetDevice(int theValue) {
 void keyPressed() {
 		if (key == 'q') {
 				P += 0.01;
+				PKnob.setValue(P);
 		} else if (key == 'a') {
 				P -= 0.01;
+				PKnob.setValue(P);
 		}
 		else if (key == 'w') {
 				I += 0.00001;
+				IKnob.setValue(I);
 		}
 		else if (key == 's') {
 				I -= 0.00001;
+				IKnob.setValue(I);
 		}
 		else if (key == 'e') {
 				D += 0.1;
+				DKnob.setValue(D);
 		}
 		else if (key == 'd') {
 				D -= 0.1;
+				DKnob.setValue(D);
 		}
 		else if (key == 'r') {
 				looptime += 100;
+				looptimeSlider.setValue(looptime);
 		}
 		else if (key == 'f') {
 				looptime -= 100;
+				looptimeSlider.setValue(looptime);
 		}
     else if (key == 't') {
 				smoothing += 0.01;
+				smoothingSlider.setValue(smoothing);
 		}
 		else if (key == 'g') {
 				smoothing -= 0.01;
+				smoothingSlider.setValue(smoothing);
 		}
 		else if (key == ' ') {
 				cumerrorx= 0;
@@ -322,6 +349,14 @@ void keyPressed() {
 				xr = random(-0.5,0.5);
 				yr = random(-0.5,0.5);
 		}
+		else if (key == 'z') {
+				P = I = D = 0;
+				cumerrorx= 0;
+				cumerrory= 0;
+				PKnob.setValue(P);
+				IKnob.setValue(I);
+				DKnob.setValue(D);
+		}
 }
 
 
@@ -330,17 +365,16 @@ void draw(){
 		/* put graphical code here, runs repeatedly at defined framerate in setup, else default at 60fps: */
 		if(renderingForce == false){
 				background(255); 
-				update_animation(angles.x*radsPerDegree, angles.y*radsPerDegree, posEE.x, posEE.y);
-    
-    
+				update_animation(angles.x*radsPerDegree, angles.y*radsPerDegree, posEE.x, posEE.y);    
 		}
 }
 /* end draw section ****************************************************************************************************/
 
 void exit() {
-		cleanUp = true;
+		println("Executing exit");
+		widgetOne.device_set_parameters();
 		widgetOne.set_device_torques(new float[]{0, 0});
-		widgetOne.device_  write_torques();
+		widgetOne.device_write_torques();
 		super.exit();
 }
 
@@ -357,11 +391,11 @@ public void SimulationThread(){
 				// we check the loop is running at the desired speed (with 10% tolerance)
 				if(timesincelastloop >= looptime*1000*1.1) {
 						float freq = 1.0/timesincelastloop*1000000.0;
-						println("caution, freq droped to: "+freq + " kHz");
+						// println("caution, freq droped to: "+freq + " kHz");
 				}
 				else if(iter >= 1000) {
 						float freq = 1000.0/(starttime-looptiming)*1000000.0;
-						println("loop running at "  + freq + " kHz");
+						// println("loop running at "  + freq + " kHz");
 						iter=0;
 						looptiming=starttime;
 				}
@@ -432,7 +466,7 @@ public void SimulationThread(){
 				renderingForce = false;
 				long timetook=System.nanoTime()-timetaken;
 				if(timetook >= 1000000) {
-						println("Caution, process loop took: " + timetook/1000000.0 + "ms");
+						//println("Caution, process loop took: " + timetook/1000000.0 + "ms");
 				}
 				else {
 						while(System.nanoTime()-starttime < looptime*1000) {
@@ -521,7 +555,7 @@ void update_animation(float th1, float th2, float xE, float yE){
 		translate(x_m, y_m);
 		shape(target);
 		popMatrix();
-  
+		forceText.setText("x " + fEE.x + "  y " + fEE.y);
 }
 
 
