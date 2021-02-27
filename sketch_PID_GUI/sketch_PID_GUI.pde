@@ -28,7 +28,7 @@ ControlP5 cp5;
 
 Knob PKnob, IKnob, DKnob;
 Slider smoothingSlider, looptimeSlider;
-Textlabel forceText;
+Textlabel forceText, infoTextLabel, infoTextX, infoTextY;
 
 /* device block definitions ********************************************************************************************/
 Board             haplyBoard;
@@ -145,7 +145,7 @@ void setup(){
 				.setFont(createFont("Georgia",20))
 				;
 		PKnob = cp5.addKnob("P")
-				.setRange(0,2)
+				.setRange(-0.5,0.5)
 				.setValue(0)
 				.setPosition(50,25)
 				.setRadius(50)
@@ -158,7 +158,7 @@ void setup(){
 				.setFont(createFont("Georgia",20))
 				;
 		IKnob = cp5.addKnob("I")
-				.setRange(0,2)
+				.setRange(-1, 1)
 				.setValue(0)
 				.setPosition(50,150)
 				.setRadius(50)
@@ -171,13 +171,13 @@ void setup(){
 				.setFont(createFont("Georgia",20))
 				;
 		DKnob = cp5.addKnob("D")
-				.setRange(0,4)
+				.setRange(-3, 3)
 				.setValue(0)
 				.setPosition(50,275)
 				.setRadius(50)
 				.setDragDirection(Knob.VERTICAL)
 				; 
-		cp5.addTextlabel("Deriv filt")
+		cp5.addTextlabel("Dgeriv filt")
 				.setText("Exponential filter for Diff")
 				.setPosition(0,375)
 				.setColorValue(color(255,0,0))
@@ -226,9 +226,27 @@ void setup(){
 
 		forceText = cp5.addTextlabel("Force Text")
 				.setText("--")
-				.setPosition(600, 600)
+				.setPosition(450, 600)
 				.setColorValue(color(255,0,0))
-				.setFont(createFont("Georgia",20));
+				.setFont(createFont("Georgia",15));
+
+		infoTextLabel = cp5.addTextlabel("infoTextLabel")
+				.setText("(P)dist\n(I)cumerror\n(D)diff")
+				.setPosition(450, 630)
+				.setColorValue(color(255,0,0))
+				.setFont(createFont("Georgia",15));
+		
+		infoTextX = cp5.addTextlabel("infoTextX")
+				.setText("--")
+				.setPosition(550, 630)
+				.setColorValue(color(255,0,0))
+				.setFont(createFont("Georgia",15));
+
+		infoTextY = cp5.addTextlabel("infoTextY")
+				.setText("--")
+				.setPosition(650, 630)
+				.setColorValue(color(255,0,0))
+				.setFont(createFont("Georgia",15));
 
 		/* device setup */
   
@@ -382,6 +400,7 @@ void exit() {
 int noforce = 0;
 long timetook = 0;
 long looptiming = 0;
+float dist_X, dist_Y;
 /* simulation section **************************************************************************************************/
 public void SimulationThread(){
 		while(1==1) {
@@ -422,9 +441,9 @@ public void SimulationThread(){
 						float yE = pixelsPerMeter * posEE.y;
 						long timedif = System.nanoTime()-oldtime;
 
-						float dist_X = x_m-xE;
+						dist_X = x_m-xE;
 						cumerrorx += dist_X*timedif*0.000000001;
-						float dist_Y = y_m-yE;
+						dist_Y = y_m-yE;
 						cumerrory += dist_Y*timedif*0.000000001;
 						//println(dist_Y*k + " " +dist_Y*k);
 						// println(timedif);
@@ -459,7 +478,7 @@ public void SimulationThread(){
 				}
     
     
-    
+				
 				widgetOne.device_write_torques();
   
   
@@ -555,7 +574,9 @@ void update_animation(float th1, float th2, float xE, float yE){
 		translate(x_m, y_m);
 		shape(target);
 		popMatrix();
-		forceText.setText("x " + fEE.x + "  y " + fEE.y);
+		forceText.setText("mag " + fEE.mag() +  "  x " + fEE.x + "  y " + fEE.y);
+		infoTextX.setText(dist_X + "\n" + cumerrorx + "\n " + diffx);
+		infoTextY.setText(dist_Y + "\n" + cumerrory + "\n " + diffy);
 }
 
 
