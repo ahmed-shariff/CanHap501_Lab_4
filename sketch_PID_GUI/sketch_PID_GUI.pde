@@ -29,6 +29,7 @@ ControlP5 cp5;
 Knob PKnob, IKnob, DKnob;
 Slider smoothingSlider, looptimeSlider;
 Textlabel forceText, infoTextLabel, infoTextX, infoTextY;
+boolean EnablePath = false;
 
 /* device block definitions ********************************************************************************************/
 Board             haplyBoard;
@@ -39,6 +40,7 @@ byte              widgetOneID                         = 5;
 int               CW                                  = 0;
 int               CCW                                 = 1;
 boolean           renderingForce                     = false;
+boolean           exitCalled                         = false;
 /* end device block definition *****************************************************************************************/
 
 
@@ -203,23 +205,36 @@ void setup(){
 				.setNumberOfTickMarks(16)
 				.setSliderMode(Slider.FLEXIBLE)
 				;
+
+		cp5.addTextlabel("Enable path")
+				.setText("Enable path")
+				.setPosition(10,490)
+				.setColorValue(color(255,0,0))
+				.setFont(createFont("Georgia",14))
+				;
+		cp5.addToggle("EnablePath")
+				.setPosition(10,520)
+				.setSize(90,20)
+				.setValue(false)
+				.setMode(ControlP5.SWITCH)
+				;		
 		cp5.addButton("RandomPosition")
-				.setValue(0)
-				.setPosition(10,500)
-				.setSize(200,40)
+				//.setValue(0)
+				.setPosition(120,500)
+				.setSize(90,40)
 				;
 		cp5.addButton("ResetIntegrator")
-				.setValue(0)
+				//.setValue(0)
 				.setPosition(10,550)
 				.setSize(200,40)
 				;
 		cp5.addButton("ResetDevice")
-				.setValue(0)
+				//.setValue(0)
 				.setPosition(10,600)
 				.setSize(200,40)
 				;
 		cp5.addButton("Exit")
-				.setValue(0)
+				//.setValue(0)
 				.setPosition(10,650)
 				.setSize(200,40)
 				;
@@ -295,8 +310,11 @@ void setup(){
 /* end setup section ***************************************************************************************************/
 
 public void RandomPosition(int theValue) {
-		xr = random(-0.5,0.5);
-    yr = random(-0.5,0.5);
+		if (!EnablePath)
+		{		
+				xr = random(-0.5,0.5);
+				yr = random(-0.5,0.5);
+		}
 }
 public void ResetIntegrator(int theValue) {
     cumerrorx= 0;
@@ -308,7 +326,8 @@ public void ResetDevice(int theValue) {
 }
 public void Exit(int value)
 {
-		exit();
+		if (value == 1)
+				exit();
 }
 
 
@@ -364,8 +383,11 @@ void keyPressed() {
 				widgetOne.device_set_parameters();
 		}
 		else if (key == 'b') {
-				xr = random(-0.5,0.5);
-				yr = random(-0.5,0.5);
+				if (!EnablePath)
+				{		
+						xr = random(-0.5,0.5);
+						yr = random(-0.5,0.5);
+				}
 		}
 		else if (key == 'z') {
 				P = I = D = 0;
@@ -389,6 +411,7 @@ void draw(){
 /* end draw section ****************************************************************************************************/
 
 void exit() {
+		exitCalled = true;
 		println("Executing exit");
 		widgetOne.device_set_parameters();
 		widgetOne.set_device_torques(new float[]{0, 0});
@@ -404,6 +427,8 @@ float dist_X, dist_Y;
 /* simulation section **************************************************************************************************/
 public void SimulationThread(){
 		while(1==1) {
+				if (exitCalled)
+						break;
 				long starttime = System.nanoTime();
 				long timesincelastloop=starttime-timetaken;
 				iter+= 1;
@@ -566,7 +591,13 @@ void update_animation(float th1, float th2, float xE, float yE){
 		arrow(xE,yE,fEE.x,fEE.y);
 		textFont(f,16);                  // STEP 3 Specify font to be used
 		fill(0);                         // STEP 4 Specify font color 
- 
+
+		if (EnablePath)
+		{
+				float theta = radians(System.nanoTime()/(20000000));
+				xr = 0.65 * cos(theta);
+				yr = 0.65 * sin(theta);
+		}
 		x_m = xr*300+500; 
 		//println(x_m + " " + mouseX);")
 		y_m = yr*300+350;//mouseY;
